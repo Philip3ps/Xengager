@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>X Reply AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #4285f4;
+    --accent-g: #34a853;
+    --accent2: #7c6af7;
+    --accent3: #f7a76a;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --success: #4ade80;
+    --danger: #f76a8a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Syne', sans-serif; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px 60px;
+    background-image:
+      radial-gradient(ellipse at 15% 0%, rgba(66,133,244,0.10) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 100%, rgba(124,106,247,0.08) 0%, transparent 55%);
+  }
+
+  .header { text-align: center; margin-bottom: 30px; }
+  .header .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px;
+    background: linear-gradient(135deg, #4285f4, #ea4335, #fbbc05, #34a853);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header h1 { font-size: clamp(1.9rem, 5vw, 3rem); font-weight: 800; line-height: 1.1; letter-spacing: -1px; }
+  .header h1 span {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header p { color: var(--muted); margin-top: 8px; font-size: 14px; font-family: 'DM Mono', monospace; }
+
+  /* FREE BADGE */
+  .free-banner {
+    width: 100%; max-width: 700px; margin-bottom: 14px;
+    background: linear-gradient(135deg, rgba(52,168,83,0.12), rgba(66,133,244,0.08));
+    border: 1px solid rgba(52,168,83,0.35);
+    border-radius: 14px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .free-banner .free-icon { font-size: 22px; flex-shrink: 0; }
+  .free-banner-text { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .free-banner-text strong { color: var(--accent-g); }
+
+  /* CARD */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 24px 26px; width: 100%; max-width: 700px;
+    margin-bottom: 14px; position: relative; overflow: hidden;
+  }
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.45;
+  }
+  .card.own-style { border-color: rgba(247,167,106,0.3); }
+  .card.own-style::before { background: linear-gradient(90deg, transparent, var(--accent3), transparent); opacity: 0.6; }
+  .card.key-card { border-color: rgba(66,133,244,0.35); }
+  .card.key-card::before { background: linear-gradient(90deg, transparent, #4285f4, transparent); opacity: 0.6; }
+
+  label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .pill { display: inline-block; border-radius: 4px; font-size: 9px; letter-spacing: 1px; padding: 2px 7px; margin-left: 8px; vertical-align: middle; font-weight: 700; }
+  .pill-orange { background: rgba(247,167,106,0.15); border: 1px solid rgba(247,167,106,0.3); color: var(--accent3); }
+  .pill-blue   { background: rgba(66,133,244,0.12);  border: 1px solid rgba(66,133,244,0.3);  color: var(--accent); }
+
+  /* API KEY */
+  .api-key-row { display: flex; gap: 8px; }
+  .api-key-row input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 13px; padding: 11px 14px; transition: border-color 0.2s;
+  }
+  .api-key-row input:focus { outline: none; border-color: var(--accent); }
+  .api-key-row input::placeholder { color: var(--muted); }
+  .api-key-row input.valid { border-color: var(--success); }
+  .save-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 10px; color: #fff; cursor: pointer;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    padding: 11px 20px; transition: opacity 0.2s; white-space: nowrap;
+  }
+  .save-btn:hover { opacity: 0.85; }
+  .api-saved { display: none; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--success); margin-top: 8px; }
+  .api-note  { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 9px; line-height: 1.7; }
+  .api-note a { color: var(--accent); text-decoration: none; }
+  .api-note a:hover { text-decoration: underline; }
+  .api-note ol { padding-left: 16px; margin-top: 4px; }
+  .api-note ol li { margin-bottom: 2px; }
+
+  /* MODE TOGGLE */
+  .mode-toggle {
+    display: flex; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 5px; gap: 5px;
+    width: 100%; max-width: 700px; margin-bottom: 14px;
+  }
+  .mode-btn {
+    flex: 1; background: transparent; border: 1px solid transparent;
+    border-radius: 12px; color: var(--muted); cursor: pointer;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+    padding: 12px 8px; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    gap: 7px; line-height: 1.3; text-align: center;
+  }
+  .mode-btn:hover { color: var(--text); }
+  .mode-btn.active-engage {
+    background: linear-gradient(135deg, rgba(66,133,244,0.18), rgba(124,106,247,0.10));
+    border-color: var(--accent); color: var(--text);
+  }
+  .mode-btn.active-own {
+    background: linear-gradient(135deg, rgba(247,167,106,0.18), rgba(124,106,247,0.10));
+    border-color: var(--accent3); color: var(--text);
+  }
+
+  .own-post-section { display: none; }
+  .own-post-section.visible { display: block; animation: fadeUp 0.22s ease; }
+
+  textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 14px; padding: 14px; resize: vertical; min-height: 95px;
+    transition: border-color 0.2s; line-height: 1.6;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  textarea.orange-focus:focus { border-color: var(--accent3); }
+  textarea::placeholder { color: var(--muted); }
+
+  /* TONE */
+  .tone-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); gap: 7px; margin-top: 4px; }
+  .tone-btn {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--muted); cursor: pointer; font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 600; padding: 9px 12px;
+    transition: all 0.18s; display: flex; align-items: center; gap: 6px;
+  }
+  .tone-btn:hover { border-color: var(--accent); color: var(--text); }
+  .tone-btn.active {
+    background: linear-gradient(135deg, rgba(66,133,244,0.2), rgba(124,106,247,0.1));
+    border-color: var(--accent); color: var(--text);
+  }
+
+  /* OPTIONS */
+  .options-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .option-group { flex: 1; min-width: 200px; }
+  .option-group label { margin-bottom: 8px; }
+
+  .seg-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg-btn {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 9px;
+    color: var(--muted); cursor: pointer; font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 700; padding: 8px 13px; transition: all 0.18s;
+  }
+  .seg-btn:hover { border-color: var(--accent); color: var(--text); }
+  .seg-btn.active {
+    background: linear-gradient(135deg, rgba(66,133,244,0.2), rgba(124,106,247,0.1));
+    border-color: var(--accent); color: var(--text);
+  }
+
+  .count-row { display: flex; align-items: center; gap: 12px; }
+  .count-row input[type=range] {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 4px; border-radius: 4px; outline: none; cursor: pointer;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent) var(--pct, 22%), var(--surface2) var(--pct, 22%));
+  }
+  .count-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--accent);
+    border: 2px solid var(--bg); cursor: pointer;
+    box-shadow: 0 0 6px rgba(66,133,244,0.5);
+  }
+  .count-badge {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-size: 22px; font-weight: 800; min-width: 28px; text-align: center;
+  }
+
+  .context-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: 'DM Mono', monospace;
+    font-size: 13px; padding: 11px 14px; transition: border-color 0.2s;
+  }
+  .context-input:focus { outline: none; border-color: var(--accent); }
+  .context-input::placeholder { color: var(--muted); }
+
+  /* GENERATE BTN */
+  .generate-btn {
+    width: 100%; max-width: 700px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 14px; color: #fff; cursor: pointer;
+    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700;
+    padding: 17px; transition: opacity 0.2s, transform 0.15s; margin-bottom: 14px;
+  }
+  .generate-btn.own-mode { background: linear-gradient(135deg, var(--accent3), var(--accent2)); }
+  .generate-btn:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
+  .generate-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-inner { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .spinner {
+    width: 17px; height: 17px; border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite; display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: rgba(247,106,138,0.1); border: 1px solid rgba(247,106,138,0.35);
+    border-radius: 10px; color: var(--danger); font-family: 'DM Mono', monospace;
+    font-size: 13px; padding: 14px; margin-bottom: 12px; display: none;
+    max-width: 700px; width: 100%; line-height: 1.6;
+  }
+
+  .results-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 26px; width: 100%; max-width: 700px; display: none;
+  }
+  .results-card.visible { display: block; animation: fadeUp 0.3s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .reply-option {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px; margin-bottom: 10px; transition: border-color 0.2s;
+  }
+  .reply-option:hover { border-color: rgba(66,133,244,0.35); }
+  .reply-option:last-child { margin-bottom: 0; }
+
+  .reply-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .reply-num  { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent2); }
+  .length-tag { font-size: 9px; font-weight: 700; letter-spacing: 1px; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
+  .length-tag.short { background: rgba(52,168,83,0.12);  border: 1px solid rgba(52,168,83,0.3);  color: var(--accent-g); }
+  .length-tag.long  { background: rgba(124,106,247,0.12); border: 1px solid rgba(124,106,247,0.3); color: var(--accent2); }
+
+  .reply-text { font-family: 'DM Mono', monospace; font-size: 14px; line-height: 1.75; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+  .reply-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; flex-wrap: wrap; gap: 8px; }
+  .char-count { font-family: 'DM Mono', monospace; font-size: 11px; }
+  .copy-btn {
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--muted); cursor: pointer; font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 600; padding: 6px 14px;
+    transition: all 0.18s; display: flex; align-items: center; gap: 5px;
+  }
+  .copy-btn:hover  { border-color: var(--success); color: var(--success); }
+  .copy-btn.copied { border-color: var(--success); color: var(--success); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">✦ Powered by Gemini</div>
+  <h1>X Reply <span>Generator</span></h1>
+  <p>// paste → configure → copy → post</p>
+</div>
+
+<!-- FREE BANNER -->
+<div class="free-banner">
+  <div class="free-icon">🎉</div>
+  <div class="free-banner-text">
+    <strong>100% Free to use</strong> — Google Gemini has a free tier with no credit card needed.
+    Just get a free API key from Google AI Studio and you're good to go.
+  </div>
+</div>
+
+<!-- API KEY -->
+<div class="card key-card">
+  <label>🔑 Google Gemini API Key</label>
+  <div class="api-key-row">
+    <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
+    <button class="save-btn" onclick="saveApiKey()">Save</button>
+  </div>
+  <div class="api-saved" id="apiSavedMsg">✅ Key saved — you're all set!</div>
+  <div class="api-note">
+    How to get your <strong style="color:var(--accent)">free</strong> API key:
+    <ol>
+      <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com/app/apikey</a></li>
+      <li>Sign in with your Google account</li>
+      <li>Click <strong>Create API Key</strong> → copy it → paste above</li>
+    </ol>
+    No credit card. No billing. Free. Key is stored only in your browser.
+  </div>
+</div>
+
+<!-- MODE TOGGLE -->
+<div class="mode-toggle">
+  <button class="mode-btn active-engage" id="modeEngage" onclick="setMode('engage')">
+    <span>🌐</span><span>Engaging<br>Other Posts</span>
+  </button>
+  <button class="mode-btn" id="modeOwn" onclick="setMode('own')">
+    <span>📝</span><span>Replying to<br>My Own Post</span>
+  </button>
+</div>
+
+<!-- MY OWN POST -->
+<div class="own-post-section" id="ownPostSection">
+  <div class="card own-style">
+    <label>📝 Your original post <span class="pill pill-orange">YOUR POST</span></label>
+    <textarea id="myPostInput" class="orange-focus"
+      placeholder="Paste your original post here so the AI understands what it was about..."
+      style="min-height:85px;"></textarea>
+  </div>
+</div>
+
+<!-- COMMENT -->
+<div class="card">
+  <label id="commentLabel">📋 Paste the X post or comment you want to reply to</label>
+  <textarea id="postInput" placeholder="Paste the tweet or comment you want to reply to..."></textarea>
+</div>
+
+<!-- TONE -->
+<div class="card">
+  <label>🎭 Reply tone</label>
+  <div class="tone-grid">
+    <button class="tone-btn active" data-tone="Engaging & friendly"><span>😊</span> Friendly</button>
+    <button class="tone-btn" data-tone="Professional & insightful"><span>💼</span> Pro</button>
+    <button class="tone-btn" data-tone="Witty & humorous"><span>😄</span> Witty</button>
+    <button class="tone-btn" data-tone="Supportive & empathetic"><span>🤝</span> Supportive</button>
+    <button class="tone-btn" data-tone="Bold & opinionated"><span>🔥</span> Bold</button>
+    <button class="tone-btn" data-tone="Curious & questioning"><span>🤔</span> Curious</button>
+  </div>
+</div>
+
+<!-- COUNT + LENGTH -->
+<div class="card">
+  <div class="options-row">
+    <div class="option-group">
+      <label>🔢 Number of replies</label>
+      <div class="count-row">
+        <input type="range" id="countSlider" min="1" max="10" value="3" oninput="updateCount(this.value)">
+        <div class="count-badge" id="countBadge">3</div>
+      </div>
+    </div>
+    <div class="option-group">
+      <label>📏 Reply length</label>
+      <div class="seg-btns">
+        <button class="seg-btn active" data-len="short" onclick="setLength('short')">⚡ Short</button>
+        <button class="seg-btn" data-len="long"  onclick="setLength('long')">📝 Long</button>
+        <button class="seg-btn" data-len="mixed" onclick="setLength('mixed')">🔀 Mix</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEXT -->
+<div class="card">
+  <label>🧠 Optional: Your context or brand voice</label>
+  <input type="text" class="context-input" id="contextInput"
+    placeholder="e.g. I'm a freelance designer, casual and direct tone...">
+</div>
+
+<button class="generate-btn" id="generateBtn" onclick="generateReplies()">
+  <div class="btn-inner">
+    <div class="spinner" id="spinner"></div>
+    <span id="btnText">✦ Generate 3 Replies</span>
+  </div>
+</button>
+
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="results-card" id="resultsCard">
+  <div class="section-title">Generated Replies</div>
+  <div id="repliesContainer"></div>
+</div>
+
+<script>
+  let selectedTone   = "Engaging & friendly";
+  let selectedLength = "short";
+  let currentMode    = "engage";
+  let replyCount     = 3;
+
+  window.addEventListener('load', () => {
+    const k = localStorage.getItem('xreply_gemini_key');
+    if (k) {
+      document.getElementById('apiKeyInput').value = k;
+      document.getElementById('apiKeyInput').classList.add('valid');
+      document.getElementById('apiSavedMsg').style.display = 'block';
+    }
+    updateCount(3);
+  });
+
+  function saveApiKey() {
+    const k = document.getElementById('apiKeyInput').value.trim();
+    if (!k) { alert("Please paste your Gemini API key first."); return; }
+    localStorage.setItem('xreply_gemini_key', k);
+    document.getElementById('apiKeyInput').classList.add('valid');
+    document.getElementById('apiSavedMsg').style.display = 'block';
+  }
+
+  function updateCount(val) {
+    replyCount = parseInt(val);
+    document.getElementById('countBadge').textContent = val;
+    document.getElementById('btnText').textContent = `✦ Generate ${val} Repl${val == 1 ? 'y' : 'ies'}`;
+    const pct = ((val - 1) / 9 * 100).toFixed(1);
+    const slider = document.getElementById('countSlider');
+    slider.style.setProperty('--pct', pct + '%');
+    slider.value = val;
+  }
+
+  function setLength(len) {
+    selectedLength = len;
+    document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.len === len));
+  }
+
+  document.querySelectorAll('.tone-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedTone = btn.dataset.tone;
+    });
+  });
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('modeEngage').classList.toggle('active-engage', mode === 'engage');
+    document.getElementById('modeOwn').classList.toggle('active-own', mode === 'own');
+    document.getElementById('ownPostSection').classList.toggle('visible', mode === 'own');
+
+    if (mode === 'own') {
+      document.getElementById('commentLabel').innerHTML =
+        '💬 Comment someone left on your post <span class="pill pill-blue">THEIR COMMENT</span>';
+      document.getElementById('postInput').placeholder = "Paste the comment someone left on your post...";
+      document.getElementById('generateBtn').classList.add('own-mode');
+    } else {
+      document.getElementById('commentLabel').innerHTML =
+        '📋 Paste the X post or comment you want to reply to';
+      document.getElementById('postInput').placeholder = "Paste the tweet or comment you want to reply to...";
+      document.getElementById('generateBtn').classList.remove('own-mode');
+    }
+
+    document.getElementById('resultsCard').classList.remove('visible');
+    document.getElementById('errorMsg').style.display = 'none';
+  }
+
+  async function generateReplies() {
+    const apiKey  = document.getElementById('apiKeyInput').value.trim();
+    const comment = document.getElementById('postInput').value.trim();
+    const myPost  = document.getElementById('myPostInput').value.trim();
+    const context = document.getElementById('contextInput').value.trim();
+
+    if (!apiKey)  { showError("Please enter and save your Gemini API key first."); return; }
+    if (!comment) { showError("Please paste the post or comment you want to reply to."); return; }
+    if (currentMode === 'own' && !myPost) { showError("Please paste your original post so the AI has context."); return; }
+
+    const btn = document.getElementById('generateBtn');
+    const spinner = document.getElementById('spinner');
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    document.getElementById('btnText').textContent = 'Generating...';
+    document.getElementById('errorMsg').style.display = 'none';
+
+    let lengthInstruction = "";
+    if (selectedLength === "short") {
+      lengthInstruction = `All replies must be SHORT — punchy and concise, ideally under 100 characters, max 180 characters.`;
+    } else if (selectedLength === "long") {
+      lengthInstruction = `All replies must be LONG — detailed and expressive, between 180–280 characters.`;
+    } else {
+      lengthInstruction = `Generate a MIX: roughly half SHORT (under 100 chars) and half LONG (180–280 chars). Vary them throughout.`;
+    }
+
+    let prompt = "";
+
+    if (currentMode === 'own') {
+      prompt = `You are an expert social media strategist helping manage an X (Twitter) account.
+${context ? `About the account owner: ${context}` : ''}
+
+The user's original post and a comment left on it are provided below.
+Write exactly ${replyCount} reply options that:
+- Are directly relevant to what the original post was about
+- Thoughtfully respond to the commenter's message
+- Sound personal, warm and genuine — not robotic or corporate
+- Match this tone: ${selectedTone}
+${lengthInstruction}
+
+MY ORIGINAL POST:
+"${myPost}"
+
+COMMENT TO REPLY TO:
+"${comment}"
+
+Return ONLY a valid JSON object in this exact format, no markdown, no explanation:
+{"replies":[{"length":"short","text":"..."},{"length":"long","text":"..."}]}`;
+
+    } else {
+      prompt = `You are an expert social media strategist writing engaging X (Twitter) replies.
+${context ? `About the user: ${context}` : ''}
+
+Write exactly ${replyCount} distinct reply options to the post below, each taking a different angle.
+All replies must sound authentic and human — never corporate or robotic.
+Match this tone: ${selectedTone}
+${lengthInstruction}
+
+POST TO REPLY TO:
+"${comment}"
+
+Return ONLY a valid JSON object in this exact format, no markdown, no explanation:
+{"replies":[{"length":"short","text":"..."},{"length":"long","text":"..."}]}`;
+    }
+
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.85,
+            maxOutputTokens: 3000,
+            responseMimeType: "application/json"
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        const msg = err.error?.message || `API error ${response.status}`;
+        throw new Error(msg);
+      }
+
+      const data = await response.json();
+      const raw  = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const clean = raw.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+
+      if (!parsed.replies || !Array.isArray(parsed.replies)) {
+        throw new Error("Unexpected response format. Please try again.");
+      }
+
+      renderReplies(parsed.replies);
+
+    } catch (err) {
+      const msg = err.message || "";
+      if (msg.includes("API_KEY_INVALID") || msg.includes("400")) {
+        showError("Invalid API key. Please check your Gemini key and try again.");
+      } else if (msg.includes("429")) {
+        showError("Rate limit hit. You've made too many requests. Wait a moment and try again.");
+      } else if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+        showError("Network error. Check your internet connection and try again.");
+      } else {
+        showError("Error: " + msg);
+      }
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      updateCount(replyCount);
+    }
+  }
+
+  function renderReplies(replies) {
+    const container = document.getElementById('repliesContainer');
+    const card      = document.getElementById('resultsCard');
+    container.innerHTML = '';
+
+    replies.forEach((r, i) => {
+      const text      = r.text || "";
+      const charCount = text.length;
+      const isLong    = r.length === 'long' || charCount > 150;
+      const countColor = charCount > 260 ? '#f76a8a' : charCount > 220 ? '#f7a76a' : '#6b6b8a';
+
+      const div = document.createElement('div');
+      div.className = 'reply-option';
+      div.innerHTML = `
+        <div class="reply-meta">
+          <span class="reply-num">Reply ${i + 1}</span>
+          <span class="length-tag ${isLong ? 'long' : 'short'}">${isLong ? '📝 Long' : '⚡ Short'}</span>
+        </div>
+        <div class="reply-text">${escapeHtml(text)}</div>
+        <div class="reply-footer">
+          <span class="char-count" style="color:${countColor}">${charCount} / 280 chars</span>
+          <button class="copy-btn" onclick="copyReply(this, ${JSON.stringify(text)})">📋 Copy</button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+
+    card.classList.remove('visible');
+    void card.offsetWidth;
+    card.classList.add('visible');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function copyReply(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.innerHTML = '✅ Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.innerHTML = '📋 Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function escapeHtml(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
